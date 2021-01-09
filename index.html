@@ -1,0 +1,60 @@
+<!--
+Copyright (c) 2021, the `mtg-perspective` Authors.
+
+This file is part of the `mtg-perspective` library, distributed under the terms of
+the Apache License 2.0.  The full license can be found in the LICENSE file.
+-->
+
+<!DOCTYPE html>
+<!--[if lt IE 7 ]> <html lang="en" class="ie6" > <![endif]-->
+<!--[if IE 7 ]>    <html lang="en" class="ie7" > <![endif]-->
+<!--[if IE 8 ]>    <html lang="en" class="ie8" > <![endif]-->
+<!--[if IE 9 ]>    <html lang="en" class="ie9" > <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html lang="en" class="" > <!--<![endif]-->
+<head>
+    <meta charset="utf-8">
+    <title>mtg-perspective</title>
+
+    
+    
+
+    
+</head>
+<body>
+    
+
+    
+    <script src="index.js"></script>
+    
+
+    
+
+    <!--  -->
+
+ 
+    <perspective-workspace id="deck">
+        <perspective-viewer selectable table="deck"></perspective-viewer>
+    </perspective-workspace>
+    <div id="modal" class="hide">
+        <div id="background"></div>
+        <div id="card_selector">
+            <perspective-viewer id="all_cards" columns='["name","manaCost","colorIdentity","types"]' selectable></perspective-viewer>
+            <perspective-viewer id="all_cards_detail" columns='["name","manaCost","colorIdentity","types"]' sort='[["name", "asc"]]' selectable></perspective-viewer>
+            <card-details></card-details>
+            <div id="card_buttons">
+                <div id="add_to_deck" class="button">add</div>
+                <div id="close" class="button">close</div>
+            </div>    
+            <div id="deck_buttons">
+                <div id="open" class="button">add_circle_outline</div>
+                <div id="remove" class="button disabled">remove</div>
+                <div id="clear" class="button">refresh</div>
+                <div id="upload" class="button">cloud_upload</div>
+            </div>
+            <div id="github"><a href="https://github.com/texodus/mtg-perspective"><img src="https://simpleicons.org/icons/github.svg"</img></a></div>
+        </div>
+    </div>
+
+
+</body>
+</html>
