@@ -1,0 +1,86 @@
+<!--
+Copyright (c) 2021, the `mtg-perspective` Authors.
+
+This file is part of the `mtg-perspective` library, distributed under the terms of
+the Apache License 2.0.  The full license can be found in the LICENSE file.
+-->
+
+<!DOCTYPE html>
+<!--[if lt IE 7 ]> <html lang="en" class="ie6" <% if(htmlWebpackPlugin.files.manifest) { %> manifest="<%= htmlWebpackPlugin.files.manifest %>"<% } %>> <![endif]-->
+<!--[if IE 7 ]>    <html lang="en" class="ie7" <% if(htmlWebpackPlugin.files.manifest) { %> manifest="<%= htmlWebpackPlugin.files.manifest %>"<% } %>> <![endif]-->
+<!--[if IE 8 ]>    <html lang="en" class="ie8" <% if(htmlWebpackPlugin.files.manifest) { %> manifest="<%= htmlWebpackPlugin.files.manifest %>"<% } %>> <![endif]-->
+<!--[if IE 9 ]>    <html lang="en" class="ie9" <% if(htmlWebpackPlugin.files.manifest) { %> manifest="<%= htmlWebpackPlugin.files.manifest %>"<% } %>> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html lang="en" class="" <% if(htmlWebpackPlugin.files.manifest) { %> manifest="<%= htmlWebpackPlugin.files.manifest %>"<% } %>> <!--<![endif]-->
+<head>
+    <meta charset="utf-8">
+    <title><%= htmlWebpackPlugin.options.title%></title>
+
+    <% if (htmlWebpackPlugin.files.favicon) { %>
+    <link rel="shortcut icon" href="<%= htmlWebpackPlugin.files.favicon%>">
+    <% } %>
+    <% if (htmlWebpackPlugin.options.mobile) { %>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <% } %>
+
+    <% for (var css in htmlWebpackPlugin.files.css) { %>
+    <link href="<%= htmlWebpackPlugin.files.css[css] %>" rel="stylesheet">
+    <% } %>
+</head>
+<body>
+    <% if (htmlWebpackPlugin.options.unsupportedBrowser) { %>
+    <style>.unsupported-browser { display: none; }</style>
+    <div class="unsupported-browser">
+    Sorry, your browser is not supported.  Please upgrade to
+    the latest version or switch your browser to use this site.
+    See <a href="http://outdatedbrowser.com/">outdatedbrowser.com</a>
+    for options.
+    </div>
+    <% } %>
+
+    <% for (var chunk in htmlWebpackPlugin.files.chunks) { %>
+    <script src="<%= htmlWebpackPlugin.files.chunks[chunk].entry %>"></script>
+    <% } %>
+
+    <% if (htmlWebpackPlugin.options.devServer) { %>
+    <script src="<%= htmlWebpackPlugin.options.devServer%>/webpack-dev-server.js"></script>
+    <% } %>
+
+    <!-- <% if (htmlWebpackPlugin.options.googleAnalytics) { %>
+    <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+
+    <% if (htmlWebpackPlugin.options.googleAnalytics.trackingId) { %>
+        ga('create', '<%= htmlWebpackPlugin.options.googleAnalytics.trackingId%>', 'auto');
+        <% } else { throw new Error("html-webpack-template requires googleAnalytics.trackingId config"); }%>
+
+    <% if (htmlWebpackPlugin.options.googleAnalytics.pageViewOnLoad) { %>
+        ga('send', 'pageview');
+    <% } %>
+    </script>
+    <% } %> -->
+
+ 
+    <perspective-workspace id="deck">
+        <perspective-viewer selectable table="deck"></perspective-viewer>
+    </perspective-workspace>
+    <div id="card_selector" class="show">
+        <perspective-viewer id="all_cards" columns='["name","manaCost","colors_0","types_0"]' selectable></perspective-viewer>
+        <perspective-viewer id="all_cards_detail" columns='["name","manaCost","colors_0","types_0"]' sort='[["name", "asc"]]' selectable></perspective-viewer>
+        <card-details></card-details>
+        <div id="card_buttons">
+            <div id="add_to_deck" class="button">Add Selected</div>
+            <div id="close" class="button">Close</div>
+        </div>    
+        <div id="deck_buttons">
+            <div id="open" class="button">Add To Deck</div>
+            <div id="clear" class="button">Clear</div>
+            <div id="upload" class="button">Upload CSV</div>
+        </div>  
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+    "name": "mtg-perspective",
+    "private": true,
+    "version": "0.0.1",
+    "description": "A deck-builder and card screener for 'Magic: The Gathering', built on Perspective",
+    "scripts": {
+        "start": "webpack-dev-server --open",
+        "build": "webpack --colour",
+        "generate": "node scripts/generate_arrow.js"
+    },
+    "keywords": [],
+    "license": "Apache-2.0",
+    "dependencies": {
+        "@finos/perspective": "^0.6.0",
+        "@finos/perspective-viewer": "^0.6.0",
+        "@finos/perspective-viewer-d3fc": "^0.6.0",
+        "@finos/perspective-viewer-datagrid": "^0.6.0",
+        "@finos/perspective-workspace": "^0.6.0"
+    },
+    "devDependencies": {
+        "@finos/perspective-webpack-plugin": "^0.6.0",
+        "css-loader": "^0.28.7",
+        "file-loader": "^4.2.0",
+        "html-webpack-plugin": "^3.2.0",
+        "style-loader": "^0.18.2",
+        "webpack": "^4.31.0",
+        "webpack-cli": "^3.3.7",
+        "webpack-dev-server": "^3.8.0"
+    }
+}

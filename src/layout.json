@@ -1,0 +1,172 @@
+{
+    "sizes": [
+        1
+    ],
+    "detail": {
+        "main": {
+            "type": "split-area",
+            "orientation": "vertical",
+            "children": [
+                {
+                    "type": "tab-area",
+                    "widgets": [
+                        "PERSPECTIVE_GENERATED_ID_0"
+                    ],
+                    "currentIndex": 0
+                },
+                {
+                    "type": "split-area",
+                    "orientation": "horizontal",
+                    "children": [
+                        {
+                            "type": "tab-area",
+                            "widgets": [
+                                "PERSPECTIVE_GENERATED_ID_2"
+                            ],
+                            "currentIndex": 0
+                        },
+                        {
+                            "type": "tab-area",
+                            "widgets": [
+                                "PERSPECTIVE_GENERATED_ID_1"
+                            ],
+                            "currentIndex": 0
+                        }
+                    ],
+                    "sizes": [
+                        0.5,
+                        0.5
+                    ]
+                }
+            ],
+            "sizes": [
+                0.5,
+                0.5
+            ]
+        }
+    },
+    "mode": "globalFilters",
+    "viewers": {
+        "PERSPECTIVE_GENERATED_ID_0": {
+            "selectable": true,
+            "plugin": "datagrid",
+            "columns": [
+                "name",
+                "manaCost",
+                "convertedManaCost",
+                "colorIdentity_0",
+                "colors_0",
+                "edhrecRank",
+                "flavorText",
+                "keywords_0",
+                "keywords_1",
+                "power",
+                "printings_0",
+                "printings_1",
+                "promoTypes_0",
+                "promoTypes_1",
+                "promoTypes_2",
+                "rarity",
+                "setCode",
+                "subtypes_0",
+                "text",
+                "toughness",
+                "type",
+                "types_0",
+                "uuid",
+                "scryfallId",
+                "count"
+            ],
+            "aggregates": {
+                "edhrecRank": "count"
+            },
+            "sort": [
+                [
+                    "edhrecRank",
+                    "asc"
+                ]
+            ],
+            "editable": null,
+            "computed-columns": null,
+            "row-pivots": null,
+            "column-pivots": null,
+            "filters": null,
+            "master": false,
+            "name": null,
+            "table": "deck",
+            "linked": false
+        },
+        "PERSPECTIVE_GENERATED_ID_2": {
+            "selectable": true,
+            "plugin": "d3_y_bar",
+            "row-pivots": [
+                "convertedManaCost"
+            ],
+            "column-pivots": [
+                "colorIdentity_0"
+            ],
+            "aggregates": {
+                "edhrecRank": "count"
+            },
+            "filters": [
+                [
+                    "types_0",
+                    "!=",
+                    "Land"
+                ]
+            ],
+            "columns": [
+                "edhrecRank"
+            ],
+            "editable": null,
+            "computed-columns": null,
+            "sort": null,
+            "plugin_config": {
+                "realValues": [
+                    "edhrecRank"
+                ]
+            },
+            "master": false,
+            "name": null,
+            "table": "deck",
+            "linked": false
+        },
+        "PERSPECTIVE_GENERATED_ID_1": {
+            "selectable": true,
+            "plugin": "d3_heatmap",
+            "row-pivots": [
+                "bin1000(edhrecRank)"
+            ],
+            "aggregates": {
+                "edhrecRank": "count"
+            },
+            "filters": [
+                [
+                    "types_0",
+                    "!=",
+                    "Land"
+                ]
+            ],
+            "columns": [
+                "edhrecRank"
+            ],
+            "computed-columns": [
+                "bin1000(\"edhrecRank\")"
+            ],
+            "column-pivots": [
+                "convertedManaCost"
+            ],
+            "editable": null,
+            "sort": null,
+            "plugin_config": {
+                "realValues": [
+                    "edhrecRank"
+                ]
+            },
+            "master": false,
+            "name": null,
+            "table": "deck",
+            "linked": false
+        }
+    }
+}
