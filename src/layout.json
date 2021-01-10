@@ -50,14 +50,23 @@
         "PERSPECTIVE_GENERATED_ID_0": {
             "selectable": true,
             "plugin": "datagrid",
+            "aggregates": {
+                "edhrecRank": "count"
+            },
+            "sort": [
+                [
+                    "edhrecRank",
+                    "asc"
+                ]
+            ],
             "columns": [
                 "name",
+                "count",
                 "manaCost",
                 "convertedManaCost",
                 "colorIdentity_0",
                 "colors_0",
                 "edhrecRank",
-                "flavorText",
                 "keywords_0",
                 "keywords_1",
                 "power",
@@ -69,22 +78,9 @@
                 "rarity",
                 "setCode",
                 "subtypes_0",
-                "text",
                 "toughness",
                 "type",
-                "types_0",
-                "uuid",
-                "scryfallId",
-                "count"
-            ],
-            "aggregates": {
-                "edhrecRank": "count"
-            },
-            "sort": [
-                [
-                    "edhrecRank",
-                    "asc"
-                ]
+                "types_0"
             ],
             "editable": null,
             "computed-columns": null,
@@ -92,7 +88,7 @@
             "column-pivots": null,
             "filters": null,
             "master": false,
-            "name": null,
+            "name": "Deck",
             "table": "deck",
             "linked": false
         },
@@ -103,10 +99,10 @@
                 "convertedManaCost"
             ],
             "column-pivots": [
-                "colorIdentity_0"
+                "colors_0"
             ],
             "aggregates": {
-                "edhrecRank": "count"
+                "count": "sum"
             },
             "filters": [
                 [
@@ -116,29 +112,35 @@
                 ]
             ],
             "columns": [
-                "edhrecRank"
+                "count"
             ],
             "editable": null,
             "computed-columns": null,
             "sort": null,
             "plugin_config": {
                 "realValues": [
-                    "edhrecRank"
+                    "count"
                 ]
             },
             "master": false,
-            "name": null,
+            "name": "Mana Curve",
             "table": "deck",
             "linked": false
         },
         "PERSPECTIVE_GENERATED_ID_1": {
             "selectable": true,
             "plugin": "d3_heatmap",
+            "computed-columns": [
+                "bin1000(\"edhrecRank\")"
+            ],
             "row-pivots": [
                 "bin1000(edhrecRank)"
             ],
+            "column-pivots": [
+                "convertedManaCost"
+            ],
             "aggregates": {
-                "edhrecRank": "count"
+                "count": "count"
             },
             "filters": [
                 [
@@ -148,23 +150,17 @@
                 ]
             ],
             "columns": [
-                "edhrecRank"
-            ],
-            "computed-columns": [
-                "bin1000(\"edhrecRank\")"
-            ],
-            "column-pivots": [
-                "convertedManaCost"
+                "count"
             ],
             "editable": null,
             "sort": null,
             "plugin_config": {
                 "realValues": [
-                    "edhrecRank"
+                    "count"
                 ]
             },
             "master": false,
-            "name": null,
+            "name": "EDHREC Rank Heatmap",
             "table": "deck",
             "linked": false
         }

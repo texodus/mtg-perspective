@@ -21,7 +21,6 @@ class UploadDialog extends HTMLElement {
 
     _set_loading(name) {
         this.innerHTML = `
-            <style>${STYLE}</style>
             <div id="drop-area" class="loading">
                 <h3>Loading <code>${name}</code></h3>
             </div>`;
@@ -30,7 +29,6 @@ class UploadDialog extends HTMLElement {
     load_txt(txt) {
         this.dispatchEvent(new CustomEvent("upload-event", {detail: txt}));
         this.innerHTML = `
-        <style>${STYLE}</style>
         <div id="drop-area" class="loading">
             <div id="loading">
                 <div id="progress"></div>
@@ -53,7 +51,6 @@ class UploadDialog extends HTMLElement {
         }
 
         this.innerHTML = `
-            <style>${STYLE}</style>
             <div id="drop-area">
                 <form class="my-form">
                     <p>Upload a CSV file by dragging from your desktop and dropping onto the dashed region.</p>
@@ -98,7 +95,7 @@ class UploadDialog extends HTMLElement {
         dropArea.addEventListener("dragenter", () => {}, false);
         dropArea.addEventListener("dragleave", () => {}, false);
         dropArea.addEventListener("dragover", () => {}, false);
-        dropArea.addEventListener("drop", x => console.log(x), false);
+        dropArea.addEventListener("drop", x => {}, false);
 
         ["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
             dropArea.addEventListener(eventName, preventDefaults, false);
@@ -122,87 +119,3 @@ class UploadDialog extends HTMLElement {
 }
 
 window.customElements.define('upload-dialog', UploadDialog);
-
-const STYLE = `
-
-#drop-area {
-    position: relative;
-    border: 5px dashed #ccc;
-    background-color: white;
-    width: 480px;
-    font-family: sans-serif;
-    margin: 100px auto;
-    padding: 48px;
-    color: #666;
-}
-
-#drop-area.loading {
-    border: 5px solid #fff;
-}
-
-#drop-area.highlight {
-    border-color: cornflowerblue;
-    color: #000;
-}
-
-#loading {
-    position: relative;
-    width: 480px;
-    height: 10px;
-    border: 1px solid #eee;
-    border-radius: 15px;
-}
-
-#progress {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 10px;
-    width: 0px;
-    border-radius: 15px;
-    background: linear-gradient(to right, #d38312, #a83279);
-}
-
-p {
-    margin-top: 0;
-}
-
-.my-form {
-    margin-bottom: 10px;
-}
-
-#gallery {
-    margin-top: 10px;
-}
-
-#gallery img {
-    width: 150px;
-    margin-bottom: 10px;
-    margin-right: 10px;
-    vertical-align: middle;
-}
-
-.my-form .button {
-    font-family: "Open Sans";
-    font-size: 14px;
-    display: inline-block;    
-    background: #ccc;
-    cursor: pointer;
-}
-
-.my-form .button:hover {
-    background: cornflowerblue;
-    color: white;
-}
-
-#fileElem {
-    display: none;
-}
-
-perspective-viewer {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-}`;

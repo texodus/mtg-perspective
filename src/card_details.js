@@ -17,7 +17,6 @@ function to_img_url(scryfall_id) {
 
 async function uuid_to_scryfall_id(uuid) {
     const all_cards = document.body.querySelector("#all_cards");
-    console.log(uuid)
     const view = all_cards.table.view({
         filter: [["uuid", "==", uuid]],
         columns: ["scryfallId"]
@@ -57,10 +56,11 @@ class CardDetails extends HTMLElement {
     }
 
     async set_uuid(id) {
+        this.set_invalid();
         this._uuid = id;
         const scryfall_id = await uuid_to_scryfall_id(this._uuid)
         const url = to_img_url(scryfall_id);
-        this.innerHTML = `<img id="preview" src="${url}"></img>`;
+        this.innerHTML = `<img id="preview" src="${url}" class="invalid"></img>`;
         this.children[0].addEventListener("load", this._validate);
     }
 }

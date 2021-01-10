@@ -26,7 +26,7 @@ function inferSchema(card) {
         const value = card[field];
         if (typeof value === "string") {
             schema[field] = "string";
-            accessors[field] = card => card[field] || null;
+            accessors[field] = card => card[field] || "-";
         } else if (typeof value === "number") {
             schema[field] = "integer";
             accessors[field] = card => card[field] || null;
@@ -34,7 +34,7 @@ function inferSchema(card) {
             for (let i = 0; i < value.length; i ++) {
                 let frozen_i = i;
                 schema[`${field}_${i}`] = "string";
-                accessors[`${field}_${i}`] = card => card[field] ? card[field][frozen_i] || null : null;
+                accessors[`${field}_${i}`] = card => card[field] ? card[field][frozen_i] || "-" : "-";
             }
         } else {
             console.warn(`Dropping column "${field}" from ${JSON.stringify(card[field])}` );
@@ -43,10 +43,9 @@ function inferSchema(card) {
     return {schema, accessors};
 }
 
-function download_json() {
+function download_json(url) {
     return new Promise((resolve, reject) => {
-        const JSON_URL = `https://mtgjson.com/api/v5/AllIdentifiers.json`;
-        https.get(JSON_URL, (resp) => {
+        https.get(url, (resp) => {
             let data = '';
             resp.on('data', (chunk) => {
                 data += chunk;
@@ -64,12 +63,12 @@ async function main() {
     }
 
     if (!fs.existsSync("data/AllIdentifiers.json")) {
-        const json = await download_json();
+        const json = await download_json(`https://mtgjson.com/api/v5/AllIdentifiers.json`);
         fs.writeFileSync("data/AllIdentifiers.json", json);
     }
 
     const buffer = require("../data/AllIdentifiers.json");
-    const {schema, accessors} = inferSchema(buffer.data[Object.keys(buffer.data)[0]]);
+    let {schema, accessors} = inferSchema(buffer.data[Object.keys(buffer.data)[0]]);
 
     schema["scryfallId"] = "string"
     accessors["scryfallId"] = card => card.identifiers.scryfallId;
@@ -99,10 +98,21 @@ async function main() {
     const arrow = await table.view().to_arrow();
     fs.writeFileSync("./data/all_identifiers.arrow", Buffer.from(arrow), "binary");
 
-    schema["count"] = "integer"
+    schema = {name: "string", count: "integer", ...schema};
     const deck_table = perspective.table(schema);
     const arrow2 = await deck_table.view().to_arrow();
     fs.writeFileSync("./data/deck.arrow", Buffer.from(arrow2), "binary");
+
+
+    if (!fs.existsSync("data/symbology.json")) {
+        const json = await download_json(`https://api.scryfall.com/symbology`);
+        fs.writeFileSync("data/symbology.json", json);
+    }
+
+    const json2 = require("../data/symbology.json");
+    const symbology = perspective.table(json2.data, {index: "symbol"});
+    const arrow3 = await symbology.view().to_arrow();
+    fs.writeFileSync("./data/symbology.arrow", Buffer.from(arrow3), "binary");
 }
 
 main();
