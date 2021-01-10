@@ -12,7 +12,7 @@
 const EMPTY_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
 function to_img_url(scryfall_id) {
-    return `https://c1.scryfall.com/file/scryfall-cards/large/front/${scryfall_id[0]}/${scryfall_id[1]}/${scryfall_id}.jpg?1562404626`
+    return `https://c1.scryfall.com/file/scryfall-cards/normal/front/${scryfall_id[0]}/${scryfall_id[1]}/${scryfall_id}.jpg?1562404626`
 }
 
 async function uuid_to_scryfall_id(uuid) {
@@ -27,9 +27,14 @@ async function uuid_to_scryfall_id(uuid) {
     return json[0].scryfallId;
 }
 
+function _validate() {
+    this.children[0].classList.remove("invalid");
+    this.children[0].removeEventListener("load", this._validate);
+}
+
 class CardDetails extends HTMLElement {
     connectedCallback() {
-        this._validate = this._validate.bind(this);
+        this._validate = _validate.bind(this);
         this.clear();
     }
 
@@ -40,11 +45,7 @@ class CardDetails extends HTMLElement {
     set_invalid() {
         this._uuid = undefined;
         this.children[0].classList.add("invalid");
-    }
-
-    _validate() {
-        this.children[0].classList.remove("invalid");
-        this.children[0].removeEventListener("load", this._validate);
+        this.children[0].setAttribute("src", EMPTY_DATA_URI);
     }
 
     has_uuid() {

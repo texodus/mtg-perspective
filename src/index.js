@@ -26,6 +26,17 @@ const worker = perspective.shared_worker();
 const all_cards_req = fetch("./all_identifiers.arrow");
 const deck_req = fetch("./deck.arrow");
 
+// tappedout
+
+function getParameterByName(name, url = window.location.href) {
+    name = name.replace(/[\[\]]/g, '\\$&');
+    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
 // Persistence
 
 function ab2str(buf) {
@@ -93,31 +104,45 @@ async function add_card_to_deck(deck_table) {
     }
 }
 
+async function remove_card_from_deck(deck_table) {
+    const details = document.querySelector("card-details");
+    await deck_table.remove([details.get_uuid()]);
+}
+
+async function user_upload(table, deck_buffer, deck_table, {detail}) {
+    const dialog = this;
+    const workspace = document.querySelector("perspective-workspace");
+    const new_table = worker.table(detail);
+    const new_view = new_table.view();
+    const json = await new_view.to_json();
+    new_view.delete();
+    const new_deck = worker.table(deck_buffer.slice(), {index: "uuid"});
+    const length = json.length;
+    let n = 0;
+    for (const row of json) {
+        const tview = table.view({
+            filter: [["name", "==", row.Name]]
+        });
+        const json = await tview.to_json();
+        tview.delete();
+        new_deck.update([json[0]]);
+        dialog.set_progress(n++, length)
+    }
+    const uview = new_deck.view();
+    const arrow2 = await uview.to_arrow();
+    uview.delete();
+    new_deck.delete();
+    deck_table.replace(arrow2);
+    save_deck(deck_table);
+    workspace.addTable("deck", deck_table);
+    document.body.removeChild(dialog);
+    open.innerHTML = "add";
+    card_details.set_invalid();
+}
+
 function upload_deck(table, deck_buffer, deck_table) {
     const dialog = document.createElement("upload-dialog");
-    const workspace = document.querySelector("perspective-workspace");
-    dialog.addEventListener("upload-event", async ({detail}) => {
-        document.body.removeChild(dialog);
-        const new_table = worker.table(detail);
-        const new_view = new_table.view();
-        const json = await new_view.to_json();
-        new_view.delete();
-        const new_deck = worker.table(deck_buffer.slice(), {index: "uuid"});
-        for (const row of json) {
-            const tview = table.view({
-                filter: [["name", "==", row.Name]]
-            });
-            const json = await tview.to_json();
-            tview.delete();
-            new_deck.update([json[0]]);
-        }
-        const uview = new_deck.view();
-        const arrow2 = await uview.to_arrow();
-        uview.delete();
-        new_deck.delete();
-        deck_table.replace(arrow2);
-        workspace.addTable("deck", deck_table);
-    });
+    dialog.addEventListener("upload-event", user_upload.bind(dialog, table, deck_buffer, deck_table));
     document.body.appendChild(dialog);
 }
 
@@ -139,8 +164,37 @@ window.addEventListener("load", async () => {
     const deck_buffer = await deck_resp.arrayBuffer();
     const deck_table = worker.table(deck_buffer.slice(), {index: "uuid"});
     
-    load_deck(deck_table);
-
+    if (window.location.search.length > 0) {
+        const dialog = document.createElement("upload-dialog");
+        dialog.addEventListener("upload-event", user_upload.bind(dialog, table, deck_buffer, deck_table));
+        document.body.appendChild(dialog);
+        const name = window.location.search.slice(1);
+        dialog._set_loading(name);
+        console.log(name);
+        const req = await fetch(
+            "https://tappedout.net/api/deck/widget/",
+            {
+                method: "post",
+                body: `board=&side=&c=type&deck=${name}&cols=6`,
+                headers: {
+                    'Content-Type': "application/x-www-form-urlencoded"
+                }
+            });
+        const json = await req.json();
+        const parser = new DOMParser();
+        const dom = parser.parseFromString(json.board, "text/html");
+        let csv = "Qty,Name\n";
+        for (const link of dom.querySelectorAll(".card-link")) {
+            const num = parseInt(link.parentElement.parentElement.childNodes[0].nodeValue);
+            const name = link.textContent;
+            console.log(`${num}x of card ${name}`);
+            csv += `${num},"${name}"\n`;
+        }
+        dialog.load_txt(csv);
+    } else {
+        load_deck(deck_table);
+    }
+    
     all_cards.load(table);
     all_cards.toggleConfig();
     all_cards.addEventListener("perspective-select", event => {
@@ -160,20 +214,35 @@ window.addEventListener("load", async () => {
     workspace.addTable("deck", deck_table);
     workspace.addEventListener("perspective-select", event => {
         const card_details = document.querySelector("card-details");
-        console.log(event.detail.id)
-        card_details.set_uuid(event.detail.id[0]);
+        const open = document.querySelector("#open");
+        if (!event.detail.selected) {
+            open.innerHTML = "add";
+            card_details.set_invalid();
+        } else {
+            open.innerHTML = "remove";
+            card_details.set_uuid(event.detail.id[0]);
+        }
     });
 
     add_to_deck.addEventListener("click", () => {
-        add_card_to_deck(deck_table)
+        add_card_to_deck(deck_table);
     });
 
     close.addEventListener("click", () => {
-        document.querySelector("#card_selector").classList.add("hide")
+        const card_details = document.querySelector("card-details");
+        document.querySelector("#modal").classList.add("hide");
+        open.innerHTML = "add";
+        card_details.set_invalid();
     });
 
     open.addEventListener("click", () => {
-        document.querySelector("#card_selector").classList.remove("hide")
+        if (open.textContent === "add") {
+            document.querySelector("#modal").classList.remove("hide");
+            all_cards.notifyResize();
+        } else {
+            remove_card_from_deck(deck_table);
+            open.innerHTML = "add";
+        }
     });
 
     clear.addEventListener("click", () => {

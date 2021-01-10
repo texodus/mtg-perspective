@@ -67,20 +67,24 @@ the Apache License 2.0.  The full license can be found in the LICENSE file.
     <perspective-workspace id="deck">
         <perspective-viewer selectable table="deck"></perspective-viewer>
     </perspective-workspace>
-    <div id="card_selector" class="show">
-        <perspective-viewer id="all_cards" columns='["name","manaCost","colors_0","types_0"]' selectable></perspective-viewer>
-        <perspective-viewer id="all_cards_detail" columns='["name","manaCost","colors_0","types_0"]' sort='[["name", "asc"]]' selectable></perspective-viewer>
-        <card-details></card-details>
-        <div id="card_buttons">
-            <div id="add_to_deck" class="button">Add Selected</div>
-            <div id="close" class="button">Close</div>
-        </div>    
-        <div id="deck_buttons">
-            <div id="open" class="button">Add To Deck</div>
-            <div id="clear" class="button">Clear</div>
-            <div id="upload" class="button">Upload CSV</div>
-        </div>  
+    <div id="modal" class="hide">
+        <div id="background"></div>
+        <div id="card_selector">
+            <perspective-viewer id="all_cards" columns='["name","manaCost","colors_0","types_0"]' selectable></perspective-viewer>
+            <perspective-viewer id="all_cards_detail" columns='["name","manaCost","colors_0","types_0"]' sort='[["name", "asc"]]' selectable></perspective-viewer>
+            <card-details></card-details>
+            <div id="card_buttons">
+                <div id="add_to_deck" class="button">add</div>
+                <div id="close" class="button">close</div>
+            </div>    
+            <div id="deck_buttons">
+                <div id="open" class="button">add</div>
+                <div id="clear" class="button">refresh</div>
+                <div id="upload" class="button">cloud_upload</div>
+            </div>  
+        </div>
     </div>
+
 
 </body>
 </html>

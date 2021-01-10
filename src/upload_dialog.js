@@ -8,32 +8,63 @@
  */
 
 class UploadDialog extends HTMLElement {
-    connectedCallback() {
+
+    constructor() {
+        super();
+        this.uploadFile = this.uploadFile.bind(this);
+        this.addEventListener("click", event => {
+            if (event.target === this && !this.classList.contains("loading")) {
+                this.parentElement.removeChild(this);
+            }
+        });
+    }
+
+    _set_loading(name) {
+        this.innerHTML = `
+            <style>${STYLE}</style>
+            <div id="drop-area" class="loading">
+                <h3>Loading <code>${name}</code></h3>
+            </div>`;
+    }
+
+    load_txt(txt) {
+        this.dispatchEvent(new CustomEvent("upload-event", {detail: txt}));
         this.innerHTML = `
         <style>${STYLE}</style>
-        <div id="drop-area">
-            <form class="my-form">
-                <p>Upload a CSV file by dragging from your desktop and dropping onto the dashed region.</p>
-                <p>(Data is processed in browser, and never sent to any server).</p>
-                <input type="file" id="fileElem" multiple accept="text/csv">
-                <label class="button" for="fileElem">Select a file</label>
-            </form>
+        <div id="drop-area" class="loading">
+            <div id="loading">
+                <div id="progress"></div>
+            </div>
         </div>`;
+    }
+
+    uploadFile(file) {
+        let reader = new FileReader();
+        reader.onload = fileLoadedEvent => {
+            let txt = fileLoadedEvent.target.result;
+            this.load_txt(txt);
+        };
+        reader.readAsText(file);
+    }
+
+    connectedCallback() {
+        if (this.innerHTML.trim().length !== 0) {
+            return;
+        }
+
+        this.innerHTML = `
+            <style>${STYLE}</style>
+            <div id="drop-area">
+                <form class="my-form">
+                    <p>Upload a CSV file by dragging from your desktop and dropping onto the dashed region.</p>
+                    <p>(Data is processed in browser, and never sent to any server).</p>
+                    <input type="file" id="fileElem" multiple accept="text/csv">
+                    <label class="button" for="fileElem">Select a file</label>
+                </form>
+            </div>`;
 
         const dropArea = this.querySelector("#drop-area");
         const input = this.querySelector("#fileElem");
-
-        const uploadFile = (file) => {
-            let reader = new FileReader();
-            reader.onload = fileLoadedEvent => {
-                let txt = fileLoadedEvent.target.result;
-                const parent = dropArea.parentElement;
-                parent.removeChild(dropArea);
-                this.dispatchEvent(new CustomEvent("upload-event", {detail: txt}))
-            };
-
-            reader.readAsText(file);
-        }
 
         function preventDefaults(e) {
             e.preventDefault();
@@ -48,12 +79,12 @@ class UploadDialog extends HTMLElement {
             dropArea.classList.remove("highlight");
         }
 
-        function handleDrop(e) {
-            handleFiles(e.dataTransfer.files);
+        const handleFiles = (files) => {
+            [...files].forEach(this.uploadFile);
         }
 
-        function handleFiles(files) {
-            [...files].forEach(uploadFile);
+        const handleDrop = (e) => {
+            handleFiles(e.dataTransfer.files);
         }
 
         ["dragenter", "dragover"].forEach(function(eventName) {
@@ -80,6 +111,10 @@ class UploadDialog extends HTMLElement {
 
     }
 
+    set_progress(n, d) {
+        this.querySelector("#progress").style.width = `${Math.floor(480 * n / d)}px`;
+    }
+
     set_scryfall_id(id) {
         const url = `https://c1.scryfall.com/file/scryfall-cards/large/front/${id[0]}/${id[1]}/${id}.jpg?1562404626`;
         this.innerHTML = ` <img id="preview" src="${url}"></img>`;
@@ -89,9 +124,11 @@ class UploadDialog extends HTMLElement {
 window.customElements.define('upload-dialog', UploadDialog);
 
 const STYLE = `
+
 #drop-area {
+    position: relative;
     border: 5px dashed #ccc;
-    border-radius: 15px;
+    background-color: white;
     width: 480px;
     font-family: sans-serif;
     margin: 100px auto;
@@ -99,9 +136,31 @@ const STYLE = `
     color: #666;
 }
 
+#drop-area.loading {
+    border: 5px solid #fff;
+}
+
 #drop-area.highlight {
     border-color: cornflowerblue;
     color: #000;
+}
+
+#loading {
+    position: relative;
+    width: 480px;
+    height: 10px;
+    border: 1px solid #eee;
+    border-radius: 15px;
+}
+
+#progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 10px;
+    width: 0px;
+    border-radius: 15px;
+    background: linear-gradient(to right, #d38312, #a83279);
 }
 
 p {
@@ -123,15 +182,15 @@ p {
     vertical-align: middle;
 }
 
-.button {
-    display: inline-block;
-    padding: 10px;
+.my-form .button {
+    font-family: "Open Sans";
+    font-size: 14px;
+    display: inline-block;    
     background: #ccc;
     cursor: pointer;
-    border-radius: 5px;
 }
 
-.button:hover {
+.my-form .button:hover {
     background: cornflowerblue;
     color: white;
 }

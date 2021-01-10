@@ -17,7 +17,7 @@ upload-dialog {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgb(255,255,255,0.8);
+    background: rgb(0, 0, 0, 0.2);
 }
 
 #card_selector {
@@ -35,17 +35,30 @@ upload-dialog {
     box-shadow: 0 5px 5px rgba(0,0,0,0.2);
 }
 
-#card_selector.hide {
+#background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.2);
+}
+
+#modal.hide #background {
+    display: none;
+}
+
+#modal.hide #card_selector {
     box-shadow: none;
     background: #eee;
     width: 300px;
 }
 
-#card_selector.hide perspective-viewer, #card_selector.hide #card_buttons {
+#modal.hide #card_selector perspective-viewer, #modal.hide #card_selector #card_buttons {
     display: none;
 }
 
-#card_selector.hide #deck_buttons {
+#modal.hide #card_selector #deck_buttons {
     display: flex;
 }
 
@@ -75,15 +88,14 @@ upload-dialog {
 }
 
 #card_selector img#preview {
-  width: 252px;
-  height: 351px;
-}
-
-#card_selector img#preview.invalid {
     border: 5px dashed #eeeeee;
     width: 242px;
     height: 341px;
-  }
+}
+
+#card_selector img#preview.invalid {
+    border: 5px dashed #ccc;
+}
 
 #card_selector #card_buttons, #card_selector #deck_buttons {
     display: flex;
@@ -103,14 +115,14 @@ perspective-workspace .psp-row-selected,
    color: white !important;
 }
 
-
 .button {
     margin: 12px;
     border: 1px solid #ccc;
+    color: #999;
     padding: 0px 12px;
     height: 48px;
-    font-family: "Open Sans";
-    font-size: 12px;
+    font-family: "Material Icons";
+    font-size: 24px;
     line-height: 48px;
     user-select: none;
 }
@@ -133,4 +145,9 @@ perspective-workspace {
 
 #card_selector perspective-viewer {
     overflow: auto !important;
+}
+
+body {
+    height: 100%;
+    overflow: hidden;
 }
