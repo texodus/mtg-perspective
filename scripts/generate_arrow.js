@@ -11,15 +11,21 @@ const perspective = require("@finos/perspective");
 
 const fs = require("fs");
 const https = require('https');
-const { mainModule } = require("process");
+
+const ARRAY_SIZE_HINTS = {
+    "colors": 4,
+    "keywords": 3,
+    "types": 3
+}
 
 function inferSchema(card) {
     const schema = {
         name: undefined,
         manaCost: undefined,
         convertedManaCost: undefined,
-        types_0: undefined,
-        colorIdentity_0: undefined
+        types: undefined,
+        colorIdentity: undefined,
+        keywords: undefined
     };
     const accessors = {}
     for (const field of Object.keys(card)) {
@@ -31,7 +37,9 @@ function inferSchema(card) {
             schema[field] = "integer";
             accessors[field] = card => card[field] || null;
         } else if (Array.isArray(value)) {
-            for (let i = 0; i < value.length; i ++) {
+            schema[field] = "string";
+            accessors[field] = card => (card[field] || ["-"]).join(",");
+            for (let i = 0; i < (ARRAY_SIZE_HINTS[field] || value.length); i ++) {
                 let frozen_i = i;
                 schema[`${field}_${i}`] = "string";
                 accessors[`${field}_${i}`] = card => card[field] ? card[field][frozen_i] || "-" : "-";
@@ -98,7 +106,18 @@ async function main() {
     const arrow = await table.view().to_arrow();
     fs.writeFileSync("./data/all_identifiers.arrow", Buffer.from(arrow), "binary");
 
-    schema = {name: "string", count: "integer", ...schema};
+    schema = {
+        name: "string",
+        count: "integer",
+        manaCost: "string",
+        convertedManaCost: "integer",
+        types: "string",
+        colorIdentity: "string",
+        keywords: "string",
+        group: "string",
+        ...schema
+    };
+
     const deck_table = perspective.table(schema);
     const arrow2 = await deck_table.view().to_arrow();
     fs.writeFileSync("./data/deck.arrow", Buffer.from(arrow2), "binary");

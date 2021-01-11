@@ -7,6 +7,24 @@
  *
  */
 
+import "./upload_dialog.css";
+
+function parse_csv_from_tappedout_dom(board) {
+    const parser = new DOMParser();
+    const dom = parser.parseFromString(board, "text/html");
+    let csv = "Qty,Name,Group\n";
+    console.log(board)
+    for (const link of dom.querySelectorAll(".card-link")) {
+        const num = parseInt(link.parentElement.parentElement.childNodes[0].nodeValue);
+        let group = link.parentElement.parentElement.parentElement.parentElement.children[0];
+        group = group.tagName === "H3" ? group.textContent.trim().replace(/\w*?\([0-9]+?\)$/g, "") : "-";
+        const name = link.textContent;
+        console.log(`${num}x of card ${name}`);
+        csv += `${num},"${name}","${group}"\n`;
+    }
+    return csv;
+}
+
 class UploadDialog extends HTMLElement {
 
     constructor() {
@@ -26,14 +44,31 @@ class UploadDialog extends HTMLElement {
             </div>`;
     }
 
+    async load_tappedout_id(name) {
+        this._set_loading(name);
+        const req = await fetch(
+            "https://tappedout.net/api/deck/widget/",
+            {
+                method: "post",
+                body: `board=&side=&c=type&deck=${name}&cols=6`,
+                headers: {
+                    'Content-Type': "application/x-www-form-urlencoded"
+                }
+            });
+
+        const json = await req.json();
+        const csv = parse_csv_from_tappedout_dom(json.board);
+        this.load_txt(csv);
+    }
+
     load_txt(txt) {
         this.dispatchEvent(new CustomEvent("upload-event", {detail: txt}));
         this.innerHTML = `
-        <div id="drop-area" class="loading">
-            <div id="loading">
-                <div id="progress"></div>
-            </div>
-        </div>`;
+            <div id="drop-area" class="loading">
+                <div id="loading">
+                    <div id="progress"></div>
+                </div>
+            </div>`;
     }
 
     uploadFile(file) {
@@ -53,15 +88,35 @@ class UploadDialog extends HTMLElement {
         this.innerHTML = `
             <div id="drop-area">
                 <form class="my-form">
-                    <p>Upload a CSV file by dragging from your desktop and dropping onto the dashed region.</p>
-                    <p>(Data is processed in browser, and never sent to any server).</p>
+                    <p>Upload a Deck List CSV file by dragging from your desktop and
+                    dropping onto the dashed region.  Deck List CSVs must provide
+                    <code>[Nn]ame</code> and optionally <code>[Qq]ty|[Cc]ount</code>
+                    columns.  Data is processed in-browser, and never sent to any
+                    server.</p>
                     <input type="file" id="fileElem" multiple accept="text/csv">
                     <label class="button" for="fileElem">Select a file</label>
+                    <br/>
+                    <br/>
+                    <b><i>or</i></b>
+                    <br/>
+                    <br/>
+                    <p>Import via deck name from</p>
+                    <code style="font-size:16px">https://tappedout.net/mtg-decks/</code>
+                    <input type="text" id="textElem" placeholder="Deck List Name"></input>
                 </form>
             </div>`;
 
         const dropArea = this.querySelector("#drop-area");
         const input = this.querySelector("#fileElem");
+        const form = this.querySelector(".my-form");
+        form.addEventListener("submit", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const input = this.querySelector("#textElem");
+            const name = input.value.toString().trim();
+            window.history.replaceState(null, null, `?${name}`);
+            this.load_tappedout_id(name);
+        })
 
         function preventDefaults(e) {
             e.preventDefault();
@@ -105,7 +160,6 @@ class UploadDialog extends HTMLElement {
         input.addEventListener("change", function() {
             handleFiles(this.files);
         });
-
     }
 
     set_progress(n, d) {

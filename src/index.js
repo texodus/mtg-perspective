@@ -8,18 +8,16 @@
  */
 
 import perspective from "@finos/perspective";
-
 import "@finos/perspective-workspace";
 import "@finos/perspective-viewer-datagrid";
 import "@finos/perspective-viewer-d3fc";
-import "@finos/perspective-workspace/dist/umd/material.css";
-import "@finos/perspective-viewer/dist/umd/material-dense.css";
-
+import {manaStyleListener} from "./mana_cost_utils.js";
 import "./upload_dialog.js";
 import "./card_details.js";
 
+import "@finos/perspective-workspace/dist/umd/material.css";
+import "@finos/perspective-viewer/dist/umd/material-dense.css";
 import "./index.css";
-import "./upload_dialog.css";
 
 import DEFAULT_LAYOUT from "./layout.json";
 
@@ -29,15 +27,28 @@ const all_cards_req = fetch("./all_identifiers.arrow");
 const deck_req = fetch("./deck.arrow");
 const sym_req = fetch("./symbology.arrow");
 
-// tappedout
+async function with_view(table, config, body) {
+    if (body === undefined) {
+        body = config;
+        config = {};
+    }
 
-function getParameterByName(name, url = window.location.href) {
-    name = name.replace(/[\[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
-        results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
-    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    const view = table.view(config);
+    const result = await body(view);
+    view.delete();
+    return result;
+}
+
+async function with_table(data, options, body) {
+    if (body === undefined) {
+        body = options;
+        options = undefined;
+    }
+
+    const table = worker.table(data, options);
+    const result = await body(table);
+    table.delete();
+    return result;
 }
 
 // Persistence
@@ -52,14 +63,15 @@ function str2ab(str) {
     for (var i = 0, strLen = str.length; i < strLen; i++) {
         bufView[i] = str.charCodeAt(i);
     }
+
     return buf;
 }
 
 async function save_deck(deck) {
-    const view = deck.view();
-    const arrow = await view.to_arrow();
-    view.delete();
-    localStorage.setItem("deck", ab2str(arrow));
+    await with_view(deck, {}, async view => {
+        const arrow = await view.to_arrow();
+        localStorage.setItem("deck", ab2str(arrow));
+    });
 }
 
 function load_deck(deck) {
@@ -71,6 +83,9 @@ function load_deck(deck) {
 // Actions
 
 async function card_select({detail: {id, selected, config: {filters}}}) {
+    const all_cards = document.querySelector("perspective-viewer#all_cards");
+    const all_cards_detail = document.querySelector("perspective-viewer#all_cards_detail");
+    const card_selector = document.querySelector("#card_selector");
     let config = await all_cards.view.get_config();
     const details = document.querySelector("card-details");
     const is_grouped = config.row_pivots.length > 0 || config.column_pivots.length > 0
@@ -78,13 +93,14 @@ async function card_select({detail: {id, selected, config: {filters}}}) {
     if (is_grouped && this !== all_cards_detail && filters.length > 0) {        
         all_cards_detail.setAttribute("filters", JSON.stringify(filters));
         await all_cards_detail.flush();
-        document.querySelector("#card_selector").classList.add("show_details");
+        card_selector.classList.add("show_details");
         await all_cards_detail.notifyResize();
     } else {
         if (this !== all_cards_detail) {
-            document.querySelector("#card_selector").classList.remove("show_details");
+            card_selector.classList.remove("show_details");
             all_cards.notifyResize();
         }
+
         if (!selected) {
             details.clear();
         } else {
@@ -98,24 +114,20 @@ async function add_card_to_deck(deck_table) {
     const details = document.querySelector("card-details");
     if (details.has_uuid()) {
         const filter = [["uuid", "==", details.get_uuid()]];
-        const view = all_cards.table.view({filter});
-        const json = await view.to_json();
-        view.delete();
+        const json = await with_view(all_cards.table, {filter}, view => view.to_json());
         json[0].count = 1;
         deck_table.update([json[0]]);
         save_deck(deck_table);
-        hide_card_details();
+        hide_card_details();    
     }
 }
 
 async function remove_card_from_deck(deck_table) {
     const details = document.querySelector("card-details");
+    const remove = document.querySelector("#remove");
     const uuid = details.get_uuid();
-    const view = deck_table.view({
-        filter: [["uuid", "==", uuid]]
-    });
-    const [row] = await view.to_json();
-    view.delete();
+    const config = {filter: [["uuid", "==", uuid]]};
+    const [row] = await with_view(deck_table, config, view => view.to_json());
     if (row && row.count > 1) {
         row.count = row.count - 1;
         deck_table.update([row]);
@@ -123,42 +135,50 @@ async function remove_card_from_deck(deck_table) {
         await deck_table.remove([uuid]);
         details.set_invalid();
         remove.classList.add("disabled");
+        open.innerHTML = "add_circle_outline";
     }
 }
 
-async function user_upload(table, deck_buffer, deck_table, {detail}) {
-    const dialog = this;
-    const workspace = document.querySelector("perspective-workspace");
-    const new_table = worker.table(detail);
-    const new_view = new_table.view();
-    const json = await new_view.to_json();
-    new_view.delete();
-    const new_deck = worker.table(deck_buffer.slice(), {index: "uuid"});
-    const length = json.length;
-    let n = 0;
-    for (const row of json) {
-        const tview = table.view({
-            filter: [["name", "==", row.Name]]
-        });
-        const json = await tview.to_json();
-        tview.delete();
+async function _add_row_to_deck(table, new_deck, row) {
+    const name = row.Name || row.name;
+    if (name !== undefined) {
+        const config = {filter: [["name", "==", name]]};
+        const json = await with_view(table, config, view => view.to_json());
         if (json.length > 0) {
-            json[0].count = row.Qty || 1;
-            new_deck.update([json[0]]);
+            json[0].count = row.Qty || row.qty || row.Count || row.count || 1;
+            json[0].group = row.Group || row.group;
+            await new_deck.update([json[0]]);
         }
-        dialog.set_progress(n++, length)
     }
-    const uview = new_deck.view();
-    const arrow2 = await uview.to_arrow();
-    uview.delete();
-    new_deck.delete();
-    deck_table.replace(arrow2);
+}
+
+async function create_lookup_deck_arrow(dialog, table, deck_buffer, csv) {
+    return await with_table(deck_buffer.slice(), {index: "uuid"}, async new_deck => {
+        const json = await with_table(csv, new_table => {
+            return with_view(new_table, view => view.to_json())
+        });
+
+        let n = 0;
+        for (const row of json) {
+            await _add_row_to_deck(table, new_deck, row);
+            dialog.set_progress(n++, json.length);
+        }
+
+        return await with_view(new_deck, view => view.to_arrow());
+    })
+}
+
+async function user_upload(table, deck_buffer, deck_table, {detail: csv}) {
+    const workspace = document.querySelector("perspective-workspace");
+    const remove = document.querySelector("#remove");
+    const details = document.querySelector("card-details");
+    const arrow = await create_lookup_deck_arrow(this, table, deck_buffer, csv)
+    deck_table.replace(arrow);
     save_deck(deck_table);
     workspace.addTable("deck", deck_table);
-    document.body.removeChild(dialog);
-    const remove = document.querySelector("#remove");
+    document.body.removeChild(this);
     remove.classList.add("disabled");
-    const details = document.querySelector("card-details");
+    open.innerHTML = "add_circle_outline";
     details.set_invalid();
 }
 
@@ -173,6 +193,7 @@ function hide_card_details() {
     document.querySelector("#modal").classList.add("hide");
     const remove = document.querySelector("#remove");
     remove.classList.add("disabled");
+    open.innerHTML = "add_circle_outline";
     card_details.set_invalid();
 }
 
@@ -190,7 +211,6 @@ window.addEventListener("load", async () => {
     const resp = await all_cards_req;
     const buffer = await resp.arrayBuffer();
     const table = worker.table(buffer, {index: "uuid"});
-    const table_schema = await table.schema();
 
     const deck_resp = await deck_req;
     const deck_buffer = await deck_resp.arrayBuffer();
@@ -203,75 +223,17 @@ window.addEventListener("load", async () => {
 
     if (window.location.search.length > 0) {
         const dialog = document.createElement("upload-dialog");
-        dialog.addEventListener("upload-event", user_upload.bind(dialog, table, deck_buffer, deck_table));
+        const upload_cb = user_upload.bind(dialog, table, deck_buffer, deck_table);
+        dialog.addEventListener("upload-event", upload_cb);
         document.body.appendChild(dialog);
-        const name = window.location.search.slice(1);
-        dialog._set_loading(name);
-        const req = await fetch(
-            "https://tappedout.net/api/deck/widget/",
-            {
-                method: "post",
-                body: `board=&side=&c=type&deck=${name}&cols=6`,
-                headers: {
-                    'Content-Type': "application/x-www-form-urlencoded"
-                }
-            });
-        const json = await req.json();
-        const parser = new DOMParser();
-        const dom = parser.parseFromString(json.board, "text/html");
-        let csv = "Qty,Name\n";
-        for (const link of dom.querySelectorAll(".card-link")) {
-            const num = parseInt(link.parentElement.parentElement.childNodes[0].nodeValue);
-            const name = link.textContent;
-            console.log(`${num}x of card ${name}`);
-            csv += `${num},"${name}"\n`;
-        }
-        dialog.load_txt(csv);
+        dialog.load_tappedout_id(window.location.search.slice(1))
     } else {
         load_deck(deck_table);
     }
 
-    function get_url(symbol) {
-        return sym_array.find(x => x.symbol === symbol).svg_uri;
-    }
-
-    const URI_CACHE = {};
-    const CODE_CACHE = {};
-
-    function get_svg(cost_code) {
-        if (cost_code in CODE_CACHE) {
-            return CODE_CACHE[cost_code];
-        }
-        let result = ``;
-        let symbol = cost_code.slice(0, 1);
-        cost_code = cost_code.slice(1);
-        while (cost_code.length > 0) {
-            while (!symbol.endsWith("}") && cost_code.length > 0) {
-                symbol += cost_code.slice(0, 1);
-                cost_code = cost_code.slice(1);
-            }
-            const icon = URI_CACHE[symbol] = URI_CACHE[symbol] || get_url(symbol);
-            result += `<img src="${icon}"></img>`;
-            symbol = "";
-        }
-        CODE_CACHE[cost_code] = result;
-        return result || "-";
-    }
-    async function mana_style_listener() {
-        for (const td of this.querySelectorAll("td")) {
-            const meta = this.getMeta(td);
-            const col_name = meta.column_header[meta.column_header.length - 1];
-            if (col_name === "manaCost") {
-                const result = get_svg(meta.value);
-                td.innerHTML = result;
-            }
-            td.classList.toggle("alt", meta.y % 2);
-        }
-    }
-
     all_cards.load(table).then(async () => {
         const regular_table = all_cards.querySelector("regular-table");
-        regular_table.addStyleListener(mana_style_listener.bind(regular_table));
+        regular_table.addStyleListener(manaStyleListener.bind(regular_table, sym_array));
     });
     all_cards.toggleConfig();
     all_cards.addEventListener("perspective-select", event => {
@@ -284,7 +246,7 @@ window.addEventListener("load", async () => {
 
     all_cards_detail.load(table).then(async () => {
         const regular_table = all_cards_detail.querySelector("regular-table");
-        regular_table.addStyleListener(mana_style_listener.bind(regular_table));
+        regular_table.addStyleListener(manaStyleListener.bind(regular_table, sym_array));
     });
 
     all_cards_detail.addEventListener("perspective-select", event => {
@@ -297,20 +259,22 @@ window.addEventListener("load", async () => {
         const card_details = document.querySelector("card-details");
         if (!event.detail.selected) {
             remove.classList.add("disabled");
+            open.innerHTML = "add_circle_outline";
             card_details.set_invalid();
         } else {
             remove.classList.remove("disabled");
+            open.innerHTML = "add";
             card_details.set_uuid(event.detail.id[0]);
         }
     });
 
-    const set = new Set();
-
+    const registered_set = new Set();
     workspace.addEventListener("workspace-layout-update", () => {
         for (const regular_table of workspace.querySelectorAll("regular-table")) {
-            if (regular_table && !set.has(regular_table)) {
-                set.add(regular_table);
-                regular_table.addStyleListener(mana_style_listener.bind(regular_table));
+            if (regular_table && !registered_set.has(regular_table)) {
+                registered_set.add(regular_table);
+                const manacost = manaStyleListener.bind(regular_table, sym_array);
+                regular_table.addStyleListener(manacost);
                 regular_table.draw();
             } 
         } 
@@ -326,15 +290,11 @@ window.addEventListener("load", async () => {
         const details = document.querySelector("card-details");
         if (details.has_uuid()) {
             const uuid = details.get_uuid();
-        
-            const view = deck_table.view({
-                filter: [["uuid", "==", uuid]]
-            });
-            const [row] = await view.to_json();
-            view.delete();
+            const config = {filter: [["uuid", "==", uuid]]};
+            const [row] = await with_view(deck_table, config, view => view.to_json());
             if (row) {
                 row.count = row.count + 1;
-                deck_table.update([row]);
+                await deck_table.update([row]);
             } 
         } else {
             document.querySelector("#modal").classList.remove("hide");

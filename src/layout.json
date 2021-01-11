@@ -55,30 +55,31 @@
             },
             "sort": [
                 [
-                    "edhrecRank",
-                    "asc"
+                    "convertedManaCost",
+                    "desc"
                 ]
             ],
             "columns": [
                 "name",
                 "count",
                 "manaCost",
+                "colorIdentity",
                 "convertedManaCost",
+                "types",
+                "edhrecRank",
+                "rarity",
+                "group",
+                "setCode",
+                "keywords",
+                "power",
+                "toughness",
                 "colorIdentity_0",
                 "colors_0",
-                "edhrecRank",
                 "keywords_0",
                 "keywords_1",
-                "power",
                 "printings_0",
                 "printings_1",
-                "promoTypes_0",
-                "promoTypes_1",
-                "promoTypes_2",
-                "rarity",
-                "setCode",
                 "subtypes_0",
-                "toughness",
                 "type",
                 "types_0"
             ],
@@ -94,12 +95,12 @@
         },
         "PERSPECTIVE_GENERATED_ID_2": {
             "selectable": true,
-            "plugin": "d3_y_bar",
+            "plugin": "d3_y_area",
             "row-pivots": [
                 "convertedManaCost"
             ],
             "column-pivots": [
-                "colors_0"
+                "colorIdentity_0"
             ],
             "aggregates": {
                 "count": "sum"
