@@ -134,7 +134,7 @@ perspective-workspace .psp-row-selected,
 }
 
 .button:hover {
-  background: blue;
+  background: #1f78b4;
   color: white;
   cursor: pointer;
 }
@@ -144,14 +144,27 @@ perspective-workspace .psp-row-selected,
     pointer-events: none;
 }
 
+#github {
+    position: absolute;
+    right: 40px;
+    bottom: 24px;
+    width: 36px;
+    height: 36px;
+    opacity: 0.2;
+    transition: color 0.2s, opacity 0.2s;
+}
+
+#github:hover {
+    opacity: 0.8;
+}
  
 perspective-workspace { 
     position: absolute;
     width: auto;
-    top: 20px; 
-    left: 20px; 
+    top: 0px; 
+    left: 0px; 
     right: 300px; 
-    bottom: 20px; 
+    bottom: 0px; 
     height: auto;
 }
 

@@ -7,24 +7,9 @@
  *
  */
 
-// `<card-details>` Web Component
+import {scryfall_id_to_img_url, uuid_to_scryfall_id} from "./data_service_utils.js";
 
 const EMPTY_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
-
-function to_img_url(scryfall_id) {
-    return `https://c1.scryfall.com/file/scryfall-cards/normal/front/${scryfall_id[0]}/${scryfall_id[1]}/${scryfall_id}.jpg?1562404626`
-}
-
-async function uuid_to_scryfall_id(uuid) {
-    const all_cards = document.body.querySelector("#all_cards");
-    const view = all_cards.table.view({
-        filter: [["uuid", "==", uuid]],
-        columns: ["scryfallId"]
-    });
-    const json = await view.to_json();
-    view.delete();
-    return json[0].scryfallId;
-}
 
 function _validate() {
     this.children[0].classList.remove("invalid");
@@ -59,7 +44,7 @@ class CardDetails extends HTMLElement {
         this.set_invalid();
         this._uuid = id;
         const scryfall_id = await uuid_to_scryfall_id(this._uuid)
-        const url = to_img_url(scryfall_id);
+        const url = scryfall_id_to_img_url(scryfall_id);
         this.innerHTML = `<img id="preview" src="${url}" class="invalid"></img>`;
         this.children[0].addEventListener("load", this._validate);
     }

@@ -7,13 +7,14 @@
  *
  */
 
-import perspective from "@finos/perspective";
 import "@finos/perspective-workspace";
 import "@finos/perspective-viewer-datagrid";
 import "@finos/perspective-viewer-d3fc";
-import {manaStyleListener} from "./mana_cost_utils.js";
+
 import "./upload_dialog.js";
 import "./card_details.js";
+import {manaStyleListener} from "./mana_cost_utils.js";
+import {tappedout_json_to_arrow, with_view, save_deck, load_deck, worker} from "./data_service_utils.js";
 
 import "@finos/perspective-workspace/dist/umd/material.css";
 import "@finos/perspective-viewer/dist/umd/material-dense.css";
@@ -21,68 +22,13 @@ import "./index.css";
 
 import DEFAULT_LAYOUT from "./layout.json";
 
-const worker = perspective.shared_worker();
-
 const all_cards_req = fetch("./all_identifiers.arrow");
 const deck_req = fetch("./deck.arrow");
 const sym_req = fetch("./symbology.arrow");
 
-async function with_view(table, config, body) {
-    if (body === undefined) {
-        body = config;
-        config = {};
-    }
-
-    const view = table.view(config);
-    const result = await body(view);
-    view.delete();
-    return result;
-}
-
-async function with_table(data, options, body) {
-    if (body === undefined) {
-        body = options;
-        options = undefined;
-    }
-
-    const table = worker.table(data, options);
-    const result = await body(table);
-    table.delete();
-    return result;
-}
-
-// Persistence
-
-function ab2str(buf) {
-    return String.fromCharCode.apply(null, new Uint16Array(buf));
-}
-
-function str2ab(str) {
-    var buf = new ArrayBuffer(str.length * 2);
-    var bufView = new Uint16Array(buf);
-    for (var i = 0, strLen = str.length; i < strLen; i++) {
-        bufView[i] = str.charCodeAt(i);
-    }
-
-    return buf;
-}
-
-async function save_deck(deck) {
-    await with_view(deck, {}, async view => {
-        const arrow = await view.to_arrow();
-        localStorage.setItem("deck", ab2str(arrow));
-    });
-}
-
-function load_deck(deck) {
-    if (localStorage.getItem("deck")) {
-        deck.update(str2ab(localStorage.getItem("deck")));
-    }
-}
-
 // Actions
 
-async function card_select({detail: {id, selected, config: {filters}}}) {
+async function select_card({detail: {id, selected, config: {filters}}}) {
     const all_cards = document.querySelector("perspective-viewer#all_cards");
     const all_cards_detail = document.querySelector("perspective-viewer#all_cards_detail");
     const card_selector = document.querySelector("#card_selector");
@@ -139,40 +85,11 @@ async function remove_card_from_deck(deck_table) {
     }
 }
 
-async function _add_row_to_deck(table, new_deck, row) {
-    const name = row.Name || row.name;
-    if (name !== undefined) {
-        const config = {filter: [["name", "==", name]]};
-        const json = await with_view(table, config, view => view.to_json());
-        if (json.length > 0) {
-            json[0].count = row.Qty || row.qty || row.Count || row.count || 1;
-            json[0].group = row.Group || row.group;
-            await new_deck.update([json[0]]);
-        }
-    }
-}
-
-async function create_lookup_deck_arrow(dialog, table, deck_buffer, csv) {
-    return await with_table(deck_buffer.slice(), {index: "uuid"}, async new_deck => {
-        const json = await with_table(csv, new_table => {
-            return with_view(new_table, view => view.to_json())
-        });
-
-        let n = 0;
-        for (const row of json) {
-            await _add_row_to_deck(table, new_deck, row);
-            dialog.set_progress(n++, json.length);
-        }
-
-        return await with_view(new_deck, view => view.to_arrow());
-    })
-}
-
-async function user_upload(table, deck_buffer, deck_table, {detail: csv}) {
+async function upload_deck(table, deck_buffer, deck_table, {detail: json}) {
     const workspace = document.querySelector("perspective-workspace");
     const remove = document.querySelector("#remove");
     const details = document.querySelector("card-details");
-    const arrow = await create_lookup_deck_arrow(this, table, deck_buffer, csv)
+    const arrow = await tappedout_json_to_arrow(this, table, deck_buffer, json)
     deck_table.replace(arrow);
     save_deck(deck_table);
     workspace.addTable("deck", deck_table);
@@ -182,9 +99,9 @@ async function user_upload(table, deck_buffer, deck_table, {detail: csv}) {
     details.set_invalid();
 }
 
-function upload_deck(table, deck_buffer, deck_table) {
+function open_upload_dialog(table, deck_buffer, deck_table) {
     const dialog = document.createElement("upload-dialog");
-    dialog.addEventListener("upload-event", user_upload.bind(dialog, table, deck_buffer, deck_table));
+    dialog.addEventListener("upload-event", upload_deck.bind(dialog, table, deck_buffer, deck_table));
     document.body.appendChild(dialog);
 }
 
@@ -223,7 +140,7 @@ window.addEventListener("load", async () => {
 
     if (window.location.search.length > 0) {
         const dialog = document.createElement("upload-dialog");
-        const upload_cb = user_upload.bind(dialog, table, deck_buffer, deck_table);
+        const upload_cb = upload_deck.bind(dialog, table, deck_buffer, deck_table);
         dialog.addEventListener("upload-event", upload_cb);
         document.body.appendChild(dialog);
         dialog.load_tappedout_id(window.location.search.slice(1))
@@ -237,7 +154,7 @@ window.addEventListener("load", async () => {
     });
     all_cards.toggleConfig();
     all_cards.addEventListener("perspective-select", event => {
-        card_select.call(all_cards, event)
+        select_card.call(all_cards, event)
     });
 
     all_cards.addEventListener("perspective-config-update", async () => {
@@ -250,7 +167,7 @@ window.addEventListener("load", async () => {
     });
 
     all_cards_detail.addEventListener("perspective-select", event => {
-        card_select.call(all_cards_detail, event)
+        select_card.call(all_cards_detail, event)
     });
 
     workspace.restore(DEFAULT_LAYOUT);
@@ -312,6 +229,6 @@ window.addEventListener("load", async () => {
     });
 
     upload.addEventListener("click", () => {
-        upload_deck(table, deck_buffer, deck_table)
+        open_upload_dialog(table, deck_buffer, deck_table)
     });
 });

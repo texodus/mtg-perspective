@@ -64,7 +64,6 @@
                 "count",
                 "manaCost",
                 "colorIdentity",
-                "convertedManaCost",
                 "types",
                 "edhrecRank",
                 "rarity",

@@ -8,22 +8,7 @@
  */
 
 import "./upload_dialog.css";
-
-function parse_csv_from_tappedout_dom(board) {
-    const parser = new DOMParser();
-    const dom = parser.parseFromString(board, "text/html");
-    let csv = "Qty,Name,Group\n";
-    console.log(board)
-    for (const link of dom.querySelectorAll(".card-link")) {
-        const num = parseInt(link.parentElement.parentElement.childNodes[0].nodeValue);
-        let group = link.parentElement.parentElement.parentElement.parentElement.children[0];
-        group = group.tagName === "H3" ? group.textContent.trim().replace(/\w*?\([0-9]+?\)$/g, "") : "-";
-        const name = link.textContent;
-        console.log(`${num}x of card ${name}`);
-        csv += `${num},"${name}","${group}"\n`;
-    }
-    return csv;
-}
+import {download_tappedout_json} from "./data_service_utils.js";
 
 class UploadDialog extends HTMLElement {
 
@@ -46,19 +31,8 @@ class UploadDialog extends HTMLElement {
 
     async load_tappedout_id(name) {
         this._set_loading(name);
-        const req = await fetch(
-            "https://tappedout.net/api/deck/widget/",
-            {
-                method: "post",
-                body: `board=&side=&c=type&deck=${name}&cols=6`,
-                headers: {
-                    'Content-Type': "application/x-www-form-urlencoded"
-                }
-            });
-
-        const json = await req.json();
-        const csv = parse_csv_from_tappedout_dom(json.board);
-        this.load_txt(csv);
+        const json = await download_tappedout_json(name);
+        this.load_txt(json);
     }
 
     load_txt(txt) {

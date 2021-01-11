@@ -7,39 +7,14 @@
  *
  */
 
-function get_url(sym_array, symbol) {
-    return sym_array.find(x => x.symbol === symbol).svg_uri;
-}
-
-const URI_CACHE = {};
-const CODE_CACHE = {};
-
-function get_svg(sym_array, cost_code) {
-    if (cost_code in CODE_CACHE) {
-        return CODE_CACHE[cost_code];
-    }
-    let result = ``;
-    let symbol = cost_code.slice(0, 1);
-    cost_code = cost_code.slice(1);
-    while (cost_code.length > 0) {
-        while (!symbol.endsWith("}") && cost_code.length > 0) {
-            symbol += cost_code.slice(0, 1);
-            cost_code = cost_code.slice(1);
-        }
-        const icon = URI_CACHE[symbol] = URI_CACHE[symbol] || get_url(sym_array, symbol);
-        result += `<img src="${icon}"></img>`;
-        symbol = "";
-    }
-    CODE_CACHE[cost_code] = result;
-    return result || "-";
-}
+ import {mana_cost_to_svg_uri} from "./data_service_utils.js";
 
 export async function manaStyleListener(sym_array, _) {
     for (const td of this.querySelectorAll("td")) {
         const meta = this.getMeta(td);
         const col_name = meta.column_header[meta.column_header.length - 1];
         if (col_name === "manaCost") {
-            td.innerHTML = get_svg(sym_array, meta.value);
+            td.innerHTML = mana_cost_to_svg_uri(sym_array, meta.value);
         } else if (col_name.includes("color")) {
             td.innerHTML = td.innerText
                 .replace("B", `<span class="mcolor" style="background-color:#333">B</span>`)
