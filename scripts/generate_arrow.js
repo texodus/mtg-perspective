@@ -81,7 +81,7 @@ async function main() {
     schema["scryfallId"] = "string"
     accessors["scryfallId"] = card => card.identifiers.scryfallId;
 
-    const table = perspective.table(schema, {index: "uuid"});
+    const table = await perspective.table(schema, {index: "uuid"});
     
     let rows = [];
     for (const uuid of Object.keys(buffer.data)) {
@@ -103,7 +103,7 @@ async function main() {
     }
 
     table.update(rows);
-    const arrow = await table.view().to_arrow();
+    const arrow = await (await table.view()).to_arrow();
     fs.writeFileSync("./data/all_identifiers.arrow", Buffer.from(arrow), "binary");
 
     schema = {
@@ -118,8 +118,8 @@ async function main() {
         ...schema
     };
 
-    const deck_table = perspective.table(schema);
-    const arrow2 = await deck_table.view().to_arrow();
+    const deck_table = await perspective.table(schema);
+    const arrow2 = await (await deck_table.view()).to_arrow();
     fs.writeFileSync("./data/deck.arrow", Buffer.from(arrow2), "binary");
 
 
@@ -129,8 +129,8 @@ async function main() {
     }
 
     const json2 = require("../data/symbology.json");
-    const symbology = perspective.table(json2.data, {index: "symbol"});
-    const arrow3 = await symbology.view().to_arrow();
+    const symbology = await perspective.table(json2.data, {index: "symbol"});
+    const arrow3 = await (await symbology.view()).to_arrow();
     fs.writeFileSync("./data/symbology.arrow", Buffer.from(arrow3), "binary");
 }
 
